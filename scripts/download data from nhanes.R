@@ -14,13 +14,13 @@ library(nhanesA)
 
 # Download data from NHANES
 
-demo <- nhanes("DEMO_J")
-bmx  <- nhanes("BMX_J")
-paq  <- nhanes("PAQ_J")
-bpx  <- nhanes("BPX_J")
+demo_j <- nhanes("DEMO_J")
+bmx_j  <- nhanes("BMX_J")
+paq_j  <- nhanes("PAQ_J")
+bpx_j  <- nhanes("BPX_J")
 # Save the data in the data folder
 
-write_csv(demo, "data/demo.csv")
-write_csv(bmx,  "data/body_measures.csv")
-write_csv(paq,  "data/physical_activity.csv")
-write_csv(bpx,  "data/blood_pressure.csv")
+write_csv(demo_j, "data/demo_j.csv")
+write_csv(bmx_j,  "data/body_measures_j.csv")
+write_csv(paq_j,  "data/physical_activity_j.csv")
+write_csv(bpx_j,  "data/blood_pressure_j.csv")
