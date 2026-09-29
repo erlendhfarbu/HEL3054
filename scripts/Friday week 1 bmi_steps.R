@@ -11,7 +11,7 @@ library(tidyverse)
 # 1. Read the data
 # ----------------------------------------------------------
 
-steps_df <- read_csv("data/bmi_steps.csv")
+steps_df <- read.csv("data/bmi_steps.csv")
 
 # Look at the first rows
 head(steps_df)
