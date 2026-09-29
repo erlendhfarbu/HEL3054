@@ -1,5 +1,5 @@
 # ============================================================================
-# EV adoption and air quality in Tromsø (Hansjordnesbukta station 203)
+# EV adoption and air quality in Tromsø (Hansjordnesbukta, station 203)
 
 # ============================================================================
 
@@ -13,39 +13,39 @@ source("scripts/load_packages.R")
 # The Excel is a wide SSB export with multi-row headers.
 # We read without column names, locate the Tromsø row, then reshape.
 car_file <- 'Number of cars using petrol gas or electic.xlsx'
-raw <- readxl::read_excel(car_file)
+raw_cars <- read_excel(car_file) #need package readxl
 
-View(raw)
-idx <- seq(from=2, to=104, by=6)
+View(raw_cars)
+idx <- seq(from=2, to=104, by=6) #starting in second column, every 6th column is a year, and a total of 17 years (2008-2025) in the data. 
+idx
+raw_cars[5, idx] # Bensin
+raw_cars[5, idx+1] # Diesel
 
-
-
-cars <- data.frame(year = c(2008:2025),
-                   bensin = as.numeric(raw[5, idx]),
-                   diesel = as.numeric(raw[5, idx + 1]),
-                   parafin = as.numeric(raw[5, idx + 2]),
-                   gass = as.numeric(raw[5, idx + 3]),
-                   el = as.numeric(raw[5, idx + 4]),
-                   other = as.numeric(raw[5, idx + 5])
+cars <- data.frame(year = 2008:2025,
+                   bensin = as.numeric(raw_cars[5, idx]), #number of cars are in row 5, columns idx (2, 8, 14, ...), 
+                   diesel = as.numeric(raw_cars[5, idx + 1]), # diesel in idx+1 = (3, 9, 15....)
+                   parafin = as.numeric(raw_cars[5, idx + 2]),
+                   gass = as.numeric(raw_cars[5, idx + 3]),
+                   el = as.numeric(raw_cars[5, idx + 4]),
+                   other = as.numeric(raw_cars[5, idx + 5])
 )
                    
 glimpse(cars)
-cars <- cars %>%  mutate(prop_el = el/(bensin+diesel+parafin+gass+el+other))
+cars <- cars |>
+  mutate(
+    total_cars = bensin + diesel + parafin +
+      gass + el + other,
+    
+    proportion_electric = el / total_cars
+  )
 glimpse(cars)
 
 
-#plot(cars$prop_el, type="l")
-# # make a nicer looking plot of prop_el over time using ggplot
-# plot_prop_el <- ggplot(cars, aes(x = year, y = prop_el)) +
-#   geom_line() +
-#   labs(title = "Proportion of Electric Vehicles in Troms (2008-2025)",
-#        x = "Year",
-#        y = "Proportion of EVs (%)") +
-#   theme_minimal() 
-#plot_prop_el
+
 cars <- cars %>% 
   filter(year >= 2015) # filter to years 2015-2025 for comparison with air quality data)
-plot_prop_el <- ggplot(cars, aes(x = year, y = prop_el)) +
+
+plot_prop_el <- ggplot(cars, aes(x = year, y = proportion_electric)) +
   geom_line() +
   labs(title = "Proportion of Electric Vehicles in Troms (2008-2025)",
        y = "Proportion of EVs (%)") +
@@ -63,16 +63,9 @@ plot_prop_el
 station_id <- 203
 station_name <- 'Hansjordnesbukta'
 
-# Choose pollutants to examine.
-# Traffic-related pollutants often include NO2, PM10, PM2.5.
-# Adjust names to whatever the API expects.
-pollutants <- c('no2', 'PM10', 'PM25')
 
 # --- API helper --------------------------------------------------------------
 # IMPORTANT: The exact endpoint paths are defined in the Miljødirektoratet Swagger.
-# Because Swagger UIs can be configured differently, this function tries a small set of
-# common endpoint patterns. If none work, it prints guidance.
-
 
 
 base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Hansjordnesbukta?components=NO2&showinvalid=false'
@@ -81,44 +74,64 @@ response <- request(base_url) |>
   req_perform()
 
 
-c <- response |> 
+no2_json <- response |> 
   resp_body_json()  
   
-glimpse(c)
-str(c)
+glimpse(no2_json)
+str(no2_json, max.level = 3)
+glimpse(no2_json[[1]])
 
+glimpse(no2_json[[1]]$values)
 
-df_no2 <- map_dfr(c[[1]]$values, ~{
-  tibble(
-    dateTime = .x$dateTime,
-    no2 = .x$value
+no2_list <- no2_json[[1]]$values |>
+  map(
+    \(measurement) {
+      tibble(
+        date_time = measurement$dateTime,
+        no2 = measurement$value
+      )
+    }
   )
-})
+
+class(no2_list)
+
+df_no2 <- no2_list |>
+  list_rbind()
 
 df_no2
-df_no2$date <- as.Date(df_no2$dateTime)
+# date is chr --> convert to date
+df_no2$date <- as.Date(df_no2$date_time) #could also use mutate
+df_no2
 
+#PM2.5
 base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Hansjordnesbukta?components=PM2.5&showinvalid=false'
 #base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2010-01-01/2010-12-30/Danmarks%20plass?components=no2&showinvalid=false'
 response <- request(base_url) |> 
   req_perform()
 
 
-c <- response |> 
+pm25_json <- response |> 
   resp_body_json()  
 
-#glimpse(c)
 
 
-df_pm25 <- map_dfr(c[[1]]$values, ~{
-  tibble(
-    dateTime = .x$dateTime,
-    pm25 = .x$value
+
+pm25_list <- pm25_json[[1]]$values |>
+  map(
+    \(measurement) {
+      tibble(
+        date_time = measurement$dateTime,
+        pm25 = measurement$value
+      )
+    }
   )
-})
 
+
+df_pm25 <- pm25_list |>
+  list_rbind()
+
+df_pm25$date <- as.Date(df_pm25$date_time) #could also use mutate
 df_pm25
-df_pm25$date <- as.Date(df_pm25$dateTime)
 
 #add pm2.5 to no2 and call it air_quality
 air_quality <- df_no2 %>%
@@ -136,9 +149,11 @@ air_quality <- air_quality %>%
   filter(date <= as.Date("2024-12-31"))
 #tail(air_quality)
 
-# --- Visualization -------------------------------------
-# pm25 <- plot(air_quality$date, air_quality$pm25,  type = "l", xlab = "Date", ylab = "PM2.5 (mikrog/m3)", main = "PM2.5 over time")
-# no2 <- plot(air_quality$date, air_quality$no2,  type = "l", xlab = "Date", ylab = "no2 (mikrog/m3)", main = "no2 over time")
+
+# =============================================================================
+# PART 3 — Visualization
+# =============================================================================
+
 
 pm25 <- ggplot(air_quality, aes(x = date, y = pm25)) +
   geom_line() +
@@ -152,7 +167,7 @@ pm25 <- ggplot(air_quality, aes(x = date, y = pm25)) +
 no2 <- ggplot(air_quality, aes(x = date, y = no2)) +
   geom_line() +
   labs(
-    title = "no2 over time",
+    title = "NO2 over time",
     x = "Date",
     y = expression(no2 ~ "(" * mu * "g/m"^3 * ")")
   ) +
@@ -162,7 +177,12 @@ no2 <- ggplot(air_quality, aes(x = date, y = no2)) +
 #no2
 
 plot_prop_el / pm25 / no2
-##### Transform of variables #####
+
+
+# =============================================================================
+# PART 4 — Yearly aggregation and visualization
+# =============================================================================
+
 #Yearly average 
 # extract year from dateTime
 air_quality <- air_quality %>% mutate(year = year(date))
@@ -171,8 +191,10 @@ hist(air_quality$no2, breaks = 130, main = "Distribution of no2", xlab = "no2 (m
 hist(air_quality$pm25, breaks = 130, main = "Distribution of PM2.5", xlab = "PM2.5 (mikrogram/m3)")
 
 
-#Yearly median and mean appended to air_quality
-# for no2
+#Yearly median and mean appended to air_quality 
+
+# Show for no2, students  can try to solve for pm2.5 and append to air_quality_year. Possible to show only mean/median/threshold depending on time
+
 air_quality_year <- air_quality |>
   group_by(year) |>
   summarise(no2_median = median(no2, na.rm = TRUE))
@@ -220,7 +242,7 @@ air_quality_year
 
 #add prop_el to air_quality_year
 air_quality_year <- air_quality_year %>%
-  left_join(cars %>% select(year, prop_el), by = "year")
+  left_join(cars %>% select(year, proportion_electric), by = "year")
 air_quality_year
 
 #visualizartion
@@ -239,7 +261,7 @@ pm25_plot_mean <- ggplot(air_quality_year, aes(x = year, y = pm25_mean)) +
   labs(title = "Yearly mean PM2.5", x = "Year", y = "PM2.5 (mikrog/m3)") +
   theme_minimal()
 
-prop_el_plot <- ggplot(air_quality_year, aes(x = year, y = prop_el)) +
+prop_el_plot <- ggplot(air_quality_year, aes(x = year, y = proportion_electric)) +
   geom_line() +
   geom_point() +
   labs(title = "Proportion of Electric Vehicles", x = "Year", y = "Proportion of EVs") +
@@ -275,5 +297,7 @@ no2_plot_threshold / no2_plot_mean / no2_plot_median / prop_el_plot
 pm25_plot_threshold / pm25_plot_mean / pm25_plot_median / prop_el_plot
 
 
-
+#### Possible expantion #######
+# what day of the week has the highest pollution?
+# what month of the year has the highest pollution?
 
