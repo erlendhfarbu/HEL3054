@@ -55,6 +55,20 @@ plot_prop_el <- ggplot(cars, aes(x = year, y = proportion_electric)) +
   
 plot_prop_el
 
+# what are we hiding when we plot the proportion of EVs? 
+# The number of cars is increasing over time. 
+# The number of petrol/diesel cars can, theoretically, be the same --> the pollution does not change
+# Plot the number of cars per fuel type in the same period
+ggplot(cars, aes(x = year)) +
+  geom_line(aes(y = bensin, color = "Bensin")) +
+  geom_line(aes(y = diesel, color = "Diesel")) +
+  geom_line(aes(y = el, color = "Electric")) +
+  labs(title = "Number of Cars in Norway (2015-2025)",
+       y = "Number of Cars",
+       color = "Fuel Type") +
+  scale_x_continuous(breaks = seq(2015, 2025, by = 1)) +
+  theme_minimal()
+
 # =============================================================================
 # PART 2 — Air quality: download measurements for station 203 and aggregate
 # =============================================================================
@@ -149,6 +163,14 @@ air_quality <- air_quality %>%
   filter(date <= as.Date("2024-12-31"))
 #tail(air_quality)
 
+# short demonstration of how to work with date and time in R. number of days since January 1, 1970, 
+# what was the pollution on the first day of 2020?
+air_quality %>% filter(date == as.Date("2020-01-01"))
+air_quality %>% filter(date == 7 + as.Date("2020-01-01"))
+air_quality %>% filter(
+        date >= as.Date("2020-01-01") 
+        & date < 10 + as.Date("2020-01-01")
+        )
 
 # =============================================================================
 # PART 3 — Visualization
@@ -297,7 +319,7 @@ no2_plot_threshold / no2_plot_mean / no2_plot_median / prop_el_plot
 pm25_plot_threshold / pm25_plot_mean / pm25_plot_median / prop_el_plot
 
 
-#### Possible expantion #######
+#### Possible expantions #######
 # what day of the week has the highest pollution?
 # what month of the year has the highest pollution?
 
