@@ -28,6 +28,7 @@ height <- c(1.60, 1.8, 1.85, 1.75)
 BMI <- weight/height^2
 
 sex <- c("Female", "Male", "Female", "Male")
+sex
 
 age
 age[1]
@@ -44,12 +45,21 @@ health_data <- tibble(id=1:4,
                       age,
                       height,
                       weight)
+#alternative
+health_data <- tibble(id=1:length(age), 
+                      sex,
+                      age,
+                      height,
+                      weight)
 health_data
 #View the data
 View(health_data)
 #get dimensions of dataframe/tibbel
 dim(health_data)
 
+# We can also pick out one value from a tibble
+health_data[2,2]
+health_data[3,2]
 #Yet another way of looking at the data
 glimpse(health_data)
 
@@ -92,9 +102,9 @@ our_first_table <- health_data |> summarise(mean_age=mean(age),
                                             mean_bmi=mean(bmi))
 our_first_table
 #Grouping on active, and counting number of participant in each group
-our_first_table <- health_data |> group_by(active) |> summarise(number=n(), mean_age=mean(age), 
+our_second_table <- health_data |> group_by(active) |> summarise(number=n(), mean_age=mean(age), 
                                             mean_bmi=mean(bmi))
-our_first_table
+our_second_table
 
 # store our tibble/dataframe
 write_csv(health_data, "my_first_dataset.csv")
