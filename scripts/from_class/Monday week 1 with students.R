@@ -103,8 +103,12 @@ getwd()
 
 #list all objects
 ls()
+# make a list of all objects
+list_of_objects <- ls()
 #remove everything
-rm(list = ls())
+rm(list=list_of_objects)
+# or directly
+rm(list=ls())
 # can select objects and put inside rm(object)
 
 #lists every object you have in the environment
