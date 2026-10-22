@@ -20,7 +20,7 @@ paq_j  <- nhanes("PAQ_J")
 bpx_j  <- nhanes("BPX_J")
 # Save the data in the data folder
 
-write_csv(demo_j, "data/demo_j.csv")
-write_csv(bmx_j,  "data/body_measures_j.csv")
-write_csv(paq_j,  "data/physical_activity_j.csv")
-write_csv(bpx_j,  "data/blood_pressure_j.csv")
+write.csv(demo_j, "data/demo_j.csv")
+write.csv(bmx_j,  "data/body_measures_j.csv")
+write.csv(paq_j,  "data/physical_activity_j.csv")
+write.csv(bpx_j,  "data/blood_pressure_j.csv")
