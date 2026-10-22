@@ -21,9 +21,9 @@ source("scripts/load_packages.R")
 # 2. Read the data. Make sure you have downloaded the data
 # ---------------------------------------------------------------------------
 
-demo_j<- read_csv("data/demo_j.csv") # from 2017-2018 
-bmx_j <- read_csv("data/body_measures_j.csv") # from 2017-2018  
-paq_j <- read_csv("data/physical_activity_j.csv") # from 2017-2018 
+demo_j<- read.csv("data/demo_j.csv") # from 2017-2018 
+bmx_j <- read.csv("data/body_measures_j.csv") # from 2017-2018  
+paq_j <- read.csv("data/physical_activity_j.csv") # from 2017-2018 
 
 # Look at the three datasets
 
@@ -159,7 +159,7 @@ nhanes_data <- nhanes_data |>
       bmi >= 18.5 & bmi < 25 ~ "Normal weight",
       bmi >= 25   & bmi < 30 ~ "Overweight",
       bmi >= 30              ~ "Obesity",
-      TRUE                   ~ NA_character_  # Maybe show what happens when this is not included? Most programs store missing as some high number.
+      TRUE                   ~ NA_character_  
     )
   )
 
@@ -403,6 +403,102 @@ nhanes_data |>
     .groups = "drop"
   )
 
+
+
+# test mean between two groups
+t.test(bmi ~ activity, data = nhanes_data)
+t.test(nhanes_data$bmi ~ nhanes_data$activity) # same as above
+
+
+
+# perform chi square test
+chisq.test(nhanes_data$activity, nhanes_data$sex) # nhanes_data$activity is telling R to use the activity variable in the nhanes_data dataset
+
+# test of other categorical variables, e.g. bmi_category and activity
+
+
+# ---------------------------------------------------------------------------
+# 10.1 Create a descriptive table manually
+# ---------------------------------------------------------------------------
+
+
+
+# Create a descriptive table by physical activity group
+
+descriptive_table <- nhanes_data |>
+  group_by(activity) |>
+  summarise(
+    # Number of participants
+    number = n(),
+    
+    # Age
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    
+    # BMI
+    mean_bmi = mean(bmi, na.rm = TRUE),
+    sd_bmi = sd(bmi, na.rm = TRUE),
+    
+    # Sex
+    number_women = sum(sex == "Female", na.rm = TRUE),
+    percentage_women = sum(sex == "Female", na.rm = TRUE)/sum(!is.na(sex)) * 100,
+    
+    #include the number of normal weight, overweight, and obesity participants in each activity group
+    # Normal weight
+    number_normal_weight = sum(bmi_category == "Normal weight", na.rm = TRUE),
+    percentage_normal_weight = sum(bmi_category == "Normal weight", na.rm = TRUE)/sum(!is.na(bmi_category)) * 100,
+    # Overweight
+    number_overweight = sum(bmi_category == "Overweight", na.rm = TRUE),
+    percentage_overweight = sum(bmi_category == "Overweight", na.rm = TRUE)/sum(!is.na(bmi_category)) * 100,  
+    # Obesity
+    number_obesity = sum(bmi_category == "Obesity", na.rm = TRUE),
+    percentage_obesity = sum(bmi_category == "Obesity", na.rm = TRUE)/sum(!is.na(bmi_category)) * 100,
+    
+    
+    .groups = "drop"
+  )
+
+descriptive_table
+t(descriptive_table) # t stands for transpose, which flips the rows and columns of the table. This is useful for viewing the table in a more readable format.
+# you can use round() to round the numbers in the table, e.g. round(mean_age, 1) to round to 1 decimal place.
+
+# calculate p-values for the differences between the two activity groups for age, sex, and BMI. For age and BMI, we can use a t-test. 
+# For sex and bmi_category, we can use a chi-squared test.
+
+p_values <- nhanes_data |>
+  summarise(
+    p_value_age = t.test(age ~ activity)$p.value,
+    p_value_bmi = t.test(bmi ~ activity)$p.value,
+    p_value_sex = chisq.test(table(sex, activity))$p.value,
+    p_value_bmi_cat = chisq.test(bmi_category, activity)$p.value
+  )
+p_values
+#add the column of p-values to the descriptive table. need to insert empty rows in the p_values table to match the number of rows in the descriptive_table. The p-values for age, sex, and BMI will be in the first three rows, and the p-value for bmi_category will be in the last row.
+p_values <- c(NA,NA,
+              p_values$p_value_age,
+              NA,
+              p_values$p_value_bmi,
+              NA,
+              p_values$p_value_sex,
+              NA,
+              NA, NA, NA, NA, NA,   # for the number and percentage of normal weight, overweight, and obesity participants
+              p_values$p_value_bmi_cat
+)
+descriptive_table <- t(descriptive_table) 
+descriptive_table
+names <- c("Physical activity", "Number", "Mean age", "SD", "Mean BMI", "SD", "Women", "Percentage women", "Normal weight", "Percentage normal weight", 
+           "Number overweight", "Percentage overweight", "Number obese", "Percentage obese")
+descriptive_table <-  
+  bind_cols(names, descriptive_table, p_values)
+
+descriptive_table
+# It is possible to create a descriptive table using the tableone package(or gtsummary), but for now it is good exercise to do it manually. 
+# See the script tableone.R. You can download it and run it on your computer, but make sure the names of objects and variables are the same if you want to reuse it. 
+
+#######   WARNING #########
+# Many don't spend the time to create a descriptive table but instead copy single numbers, or write them manually into word. 
+# This increases the risk of errors and is not reproducible. It is better to create a descriptive table in R and then copy it into word or pdf.
+
 # ---------------------------------------------------------------------------
 # 11. Linear regression
 # ---------------------------------------------------------------------------
@@ -421,3 +517,5 @@ model2 <- lm(bmi ~ activity + sex + age, data = nhanes_data)
 # View the results
 
 summary(model2)
+
+# How would you present results from regression models?
