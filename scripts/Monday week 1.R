@@ -240,7 +240,7 @@ health_data |>
 # 10. Save the dataset
 # ---------------------------------------------------------------------------
 
-write_csv(
+write.csv(
   health_data,
   "tiny_health_data.csv"
 )

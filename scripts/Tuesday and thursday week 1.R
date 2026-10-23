@@ -134,6 +134,7 @@ nhanes_data <- nhanes_data |>
       vigorous_activity == "No" & moderate_activity == "No" ~ 2,
       TRUE ~ NA_real_)
   )
+class(nhanes_data$activity)
 
 nhanes_data <- nhanes_data |>
   mutate(
@@ -143,6 +144,7 @@ nhanes_data <- nhanes_data |>
       labels = c("Active", "Inactive")
     )
   )
+class(nhanes_data$activity)
 
 # Look at the new variables
 
@@ -442,7 +444,6 @@ descriptive_table <- nhanes_data |>
     # Sex
     number_women = sum(sex == "Female", na.rm = TRUE),
     percentage_women = sum(sex == "Female", na.rm = TRUE)/sum(!is.na(sex)) * 100,
-    
     #include the number of normal weight, overweight, and obesity participants in each activity group
     # Normal weight
     number_normal_weight = sum(bmi_category == "Normal weight", na.rm = TRUE),
@@ -499,6 +500,35 @@ descriptive_table
 # Many don't spend the time to create a descriptive table but instead copy single numbers, or write them manually into word. 
 # This increases the risk of errors and is not reproducible. It is better to create a descriptive table in R and then copy it into word or pdf.
 
+##### make some figures. in class Thursday
+
+bar_chart <- ggplot(nhanes_data, aes(x=bmi_category, fill = activity))+
+  geom_bar(position="dodge")+
+  labs( title = "Number of participants in different categories of \n BMI by physical activity",
+        x = "BMI categories",
+        y = "Number of participants")+
+  theme_minimal()
+bar_chart
+
+# Draw this with proportions instead. 
+bar_chart_by_activity <- nhanes_data |>
+  count(activity, bmi_category) |> #creates an object with total number in each activity group
+  group_by(activity) |> #groups the further code by activity
+  mutate(percent = n / sum(n) * 100) |> #calculates the percent
+  ggplot(aes(
+    x = bmi_category,
+    y = percent,
+    fill = activity
+  )) +
+  geom_col(position = "dodge") +
+  labs(
+    x = "BMI category",
+    y = "Percent",
+    fill = "Activity group"
+  )
+
+#save this to the folder ouputs
+ggsave("outputs/bar_chart.png", bar_chart_by_activity) # you can then paste that picture into word
 # ---------------------------------------------------------------------------
 # 11. Linear regression
 # ---------------------------------------------------------------------------
@@ -518,4 +548,15 @@ model2 <- lm(bmi ~ activity + sex + age, data = nhanes_data)
 
 summary(model2)
 
+#Remember: We ave not checked any of the assumptions for doing linear regression! 
 # How would you present results from regression models?
+
+#Just another regression model
+
+model3 <- lm(bmi ~ sitting_minutes + age+ sex, data = nhanes_data)
+summary(model3)
+# for an hour
+0.004*60
+# or using the coefficient from the model
+model3$coefficients[2]
+model3$coefficients[2]*60
