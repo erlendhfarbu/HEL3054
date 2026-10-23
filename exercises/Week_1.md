@@ -130,8 +130,8 @@ Are the participants identifiable? Ethics?
 and BMI? Is there any differences in the association among male and
 female?
 
-Download the synthetic dataset bmi_steps from Canvas. Store it in the
-directory “data”.
+Download the synthetic dataset bmi_steps from the data folder on Github.
+Store it in your directory “data”.
 
 Half of the class uses tables, summary statistics, statistical tests and
 regression to investigate the research questions. The results should be
