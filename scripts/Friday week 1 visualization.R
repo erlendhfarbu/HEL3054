@@ -91,6 +91,12 @@ model3 <- lm(bmi ~ steps + sex + steps*sex, data = steps_df)
 
 summary(model3)
 
+male <- steps_df |> filter(sex == "male")
+female <- steps_df |> filter(sex == "female")
+male_model <- lm(bmi ~ steps, data = male)
+female_model <- lm(bmi ~ steps, data = female)
+summary(female_model)
+summary(male_model)
 # -------------------------------
 # Residuals if interesting
 # ------------------------
