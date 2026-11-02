@@ -12,8 +12,7 @@ source("scripts/load_packages.R")
 
 # The Excel is a wide SSB export with multi-row headers.
 # We read without column names, locate the Tromsø row, then reshape.
-car_file <- 'Number of cars using petrol gas or electic.xlsx'
-raw_cars <- read_excel(car_file) #need package readxl
+raw_cars <- read_excel("data/Number of cars using petrol gas or electic.xls") #need package readxl
 
 View(raw_cars)
 idx <- seq(from=2, to=104, by=6) #starting in second column, every 6th column is a year, and a total of 17 years (2008-2025) in the data. 
@@ -21,7 +20,7 @@ idx
 raw_cars[5, idx] # Bensin
 raw_cars[5, idx+1] # Diesel
 
-cars <- data.frame(year = 2008:2025,
+cars <- data.frame(year = 2008:2025, # putting everything together in a data frame, year is 2008-2025
                    bensin = as.numeric(raw_cars[5, idx]), #number of cars are in row 5, columns idx (2, 8, 14, ...), 
                    diesel = as.numeric(raw_cars[5, idx + 1]), # diesel in idx+1 = (3, 9, 15....)
                    parafin = as.numeric(raw_cars[5, idx + 2]),
@@ -45,11 +44,12 @@ glimpse(cars)
 cars <- cars %>% 
   filter(year >= 2015) # filter to years 2015-2025 for comparison with air quality data)
 
+#plot only the proportion of electric vehicles over time (year) in Troms (2015-2025)  
 plot_prop_el <- ggplot(cars, aes(x = year, y = proportion_electric)) +
   geom_line() +
-  labs(title = "Proportion of Electric Vehicles in Troms (2008-2025)",
+  labs(title = "Proportion of Electric Vehicles in Troms (2015-2025)",
        y = "Proportion of EVs (%)") +
-  scale_x_continuous(breaks = seq(2008, 2025, by = 2)) +
+  scale_x_continuous(breaks = seq(2015, 2025, by = 2)) +
   theme_minimal() 
 
   
@@ -58,6 +58,8 @@ plot_prop_el
 # what are we hiding when we plot the proportion of EVs? 
 # The number of cars is increasing over time. 
 # The number of petrol/diesel cars can, theoretically, be the same --> the pollution does not change
+
+
 # Plot the number of cars per fuel type in the same period
 ggplot(cars, aes(x = year)) +
   geom_line(aes(y = bensin, color = "Bensin")) +
@@ -83,43 +85,39 @@ station_name <- 'Hansjordnesbukta'
 
 
 base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Hansjordnesbukta?components=NO2&showinvalid=false'
-#base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2010-01-01/2010-12-30/Danmarks%20plass?components=NO2&showinvalid=false'
-response <- request(base_url) |> 
-  req_perform()
 
+no2_json <- request(base_url) |>
+  req_perform() |>
+  resp_body_json() 
 
-no2_json <- response |> 
-  resp_body_json()  
-  
 glimpse(no2_json)
 str(no2_json, max.level = 3)
 glimpse(no2_json[[1]])
 
 glimpse(no2_json[[1]]$values)
 
-no2_list <- no2_json[[1]]$values |>
-  map(
-    \(measurement) {
-      tibble(
-        date_time = measurement$dateTime,
-        no2 = measurement$value
-      )
-    }
+head(no2_json[[1]]$values)
+
+
+
+
+df_no2 <- no2_json[[1]]$values |>
+  bind_rows() 
+df_no2
+
+df_no2 <- df_no2 |>
+  mutate(
+    date_time = dateTime,
+    date = as.Date(dateTime), # date is chr --> convert to date using as.Date()
+
+    no2 = value,
+    .keep = "none"
   )
 
-class(no2_list)
-
-df_no2 <- no2_list |>
-  list_rbind()
-
-df_no2
-# date is chr --> convert to date
-df_no2$date <- as.Date(df_no2$date_time) #could also use mutate
 df_no2
 
 #PM2.5
 base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Hansjordnesbukta?components=PM2.5&showinvalid=false'
-#base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2010-01-01/2010-12-30/Danmarks%20plass?components=no2&showinvalid=false'
 response <- request(base_url) |> 
   req_perform()
 
@@ -153,7 +151,7 @@ air_quality <- df_no2 %>%
   select(date, no2, pm25)
 air_quality
 
-write_csv(
+write.csv(
   air_quality,
   "data/air_quality_hansjordnesbukta.csv"
 )
@@ -222,8 +220,8 @@ air_quality_year <- air_quality |>
   summarise(no2_median = median(no2, na.rm = TRUE))
 
 glimpse(air_quality_year)
-#for pm2.5 and append to air_quality_year
 
+#for pm2.5 and append to air_quality_year
 
 air_quality_pm25 <- air_quality %>%
   group_by(year) %>%
@@ -254,7 +252,7 @@ air_quality_year <- air_quality_year %>%
   left_join(air_quality_pm25_threshold, by = "year")
 air_quality_year
 
-#number over a certain threshold for no2 (e.g., % of days with no2 > 25 µg/m³) in a year
+#number over a certain threshold for no2 (e.g., n of days with no2 > 25 µg/m³) in a year
 air_quality_no2_over_threshold <- air_quality %>% 
   group_by(year) %>%
   summarise(no2_over_threshold = sum(no2 > 25, na.rm = TRUE))

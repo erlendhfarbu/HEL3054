@@ -75,7 +75,7 @@ Extra: On what day is it most pollution?
 
 [**Thursday and Friday**]{.underline}
 
-**Research question: How has medically certified sick leave developed quarterly in Norwegian counties, and have trends differed between women and men?**
+**Research question: How has medically certified sick leave developed quarterly in different Norwegian counties, and have trends differed between women and men?**
 
 Supervised work.
 
