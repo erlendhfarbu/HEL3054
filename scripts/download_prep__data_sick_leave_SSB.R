@@ -35,8 +35,9 @@ sick_leave_data <- sick_leave_data |>
 tail(sick_leave_data)
 sick_leave_data <- sick_leave_data |>
   drop_na("2020K1")       # there has been several reforms we therefore only chooses communities having the same code from 2020-2024. therefore dropping those having missing in 2020
-View(sick_leave_data)
 dim(sick_leave_data)
+View(sick_leave_data)
+
 
 
 

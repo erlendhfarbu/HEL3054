@@ -75,10 +75,6 @@ ggplot(cars, aes(x = year)) +
 # PART 2 — Air quality: download measurements for station 203 and aggregate
 # =============================================================================
 
-# Station metadata (given in assignment)
-station_id <- 203
-station_name <- 'Hansjordnesbukta'
-
 
 # --- API helper --------------------------------------------------------------
 # IMPORTANT: The exact endpoint paths are defined in the Miljødirektoratet Swagger.
@@ -97,7 +93,6 @@ glimpse(no2_json[[1]])
 glimpse(no2_json[[1]]$values)
 
 head(no2_json[[1]]$values)
-
 
 
 
@@ -127,22 +122,20 @@ pm25_json <- response |>
 
 
 
+df_pm25 <- pm25_json[[1]]$values |>
+  bind_rows() 
+df_pm25
 
-pm25_list <- pm25_json[[1]]$values |>
-  map(
-    \(measurement) {
-      tibble(
-        date_time = measurement$dateTime,
-        pm25 = measurement$value
-      )
-    }
+df_pm25 <- df_pm25 |>
+  mutate(
+    date_time = dateTime,
+    date = as.Date(dateTime), # date is chr --> convert to date using as.Date()
+    pm25 = value,
+    .keep = "none"
   )
 
 
-df_pm25 <- pm25_list |>
-  list_rbind()
 
-df_pm25$date <- as.Date(df_pm25$date_time) #could also use mutate
 df_pm25
 
 #add pm2.5 to no2 and call it air_quality
@@ -207,62 +200,41 @@ plot_prop_el / pm25 / no2
 # extract year from dateTime
 air_quality <- air_quality %>% mutate(year = year(date))
 #use mean or median?
-hist(air_quality$no2, breaks = 130, main = "Distribution of no2", xlab = "no2 (mikrogram/m3)")
-hist(air_quality$pm25, breaks = 130, main = "Distribution of PM2.5", xlab = "PM2.5 (mikrogram/m3)")
+hist(air_quality$no2, 
+     breaks = 130, 
+     main = "Distribution of no2", 
+     xlab = "no2 (mikrogram/m3)")
+
+hist(air_quality$pm25, 
+     breaks = 130, 
+     main = "Distribution of PM2.5", 
+     xlab = "PM2.5 (mikrogram/m3)")
 
 
-#Yearly median and mean appended to air_quality 
 
-# Show for no2, students  can try to solve for pm2.5 and append to air_quality_year. Possible to show only mean/median/threshold depending on time
 
+# Calculate yearly summaries
 air_quality_year <- air_quality |>
+  mutate(year = year(date)) |>
   group_by(year) |>
-  summarise(no2_median = median(no2, na.rm = TRUE))
+  summarise(
+    no2_median = median(no2, na.rm = TRUE),
+    pm25_median = median(pm25, na.rm = TRUE),
+    no2_mean = mean(no2, na.rm = TRUE),
+    pm25_mean = mean(pm25, na.rm = TRUE),
+    no2_over_threshold = sum(no2 > 25, na.rm = TRUE),
+    pm25_over_threshold = sum(pm25 > 15, na.rm = TRUE),
+    .groups = "drop"
+  ) 
 
-glimpse(air_quality_year)
 
-#for pm2.5 and append to air_quality_year
+air_quality_year <- air_quality_year |>
+  left_join(
+    cars |>
+      select(year, proportion_electric),
+    by = "year"
+  )
 
-air_quality_pm25 <- air_quality %>%
-  group_by(year) %>%
-  summarise(pm25_median = median(pm25, na.rm = TRUE))
-
-air_quality_year <- air_quality_year %>%
-  left_join(air_quality_pm25, by = "year")
-
-#repeat for yearly mean
-air_quality_no2 <- air_quality %>%
-  group_by(year) %>%
-  summarise(no2_mean = mean(no2, na.rm = TRUE))
-air_quality_year <- air_quality_year %>%
-  left_join(air_quality_no2, by = "year")
-
-air_quality_pm25 <- air_quality %>%
-  group_by(year) %>%
-  summarise(pm25_mean = mean(pm25, na.rm = TRUE))
-air_quality_year <- air_quality_year %>%
-  left_join(air_quality_pm25, by = "year")
-air_quality_year
-
-#number of days over a certain threshold (e.g., % of days with PM2.5 > 15 µg/m³, WHO guidelines) in a year
-air_quality_pm25_threshold <- air_quality %>%
-  group_by(year) %>%
-  summarise(pm25_over_threshold = sum(pm25 > 15, na.rm = TRUE))
-air_quality_year <- air_quality_year %>%
-  left_join(air_quality_pm25_threshold, by = "year")
-air_quality_year
-
-#number over a certain threshold for no2 (e.g., n of days with no2 > 25 µg/m³) in a year
-air_quality_no2_over_threshold <- air_quality %>% 
-  group_by(year) %>%
-  summarise(no2_over_threshold = sum(no2 > 25, na.rm = TRUE))
-air_quality_year <- air_quality_year %>%
-  left_join(air_quality_no2_over_threshold, by = "year")
-air_quality_year
-
-#add prop_el to air_quality_year
-air_quality_year <- air_quality_year %>%
-  left_join(cars %>% select(year, proportion_electric), by = "year")
 air_quality_year
 
 #visualizartion
