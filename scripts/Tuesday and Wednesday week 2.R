@@ -81,6 +81,7 @@ ggplot(cars, aes(x = year)) +
 
 
 base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Hansjordnesbukta?components=NO2&showinvalid=false'
+#base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Danmarks%20plass?components=NO2&showinvalid=false' # Station with high pollution in Bergen
 
 no2_json <- request(base_url) |>
   req_perform() |>
@@ -113,6 +114,8 @@ df_no2
 
 #PM2.5
 base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Hansjordnesbukta?components=PM2.5&showinvalid=false'
+#base_url <- 'https://api-luftmalinger.miljodirektoratet.no/public/agg/2/2015-01-01/2025-12-30/Danmarks%20plass?components=PM2.5&showinvalid=false' # Station with high pollution in Bergen
+
 response <- request(base_url) |> 
   req_perform()
 
@@ -227,7 +230,7 @@ air_quality_year <- air_quality |>
     .groups = "drop"
   ) 
 
-
+air_quality_year
 air_quality_year <- air_quality_year |>
   left_join(
     cars |>
@@ -237,6 +240,7 @@ air_quality_year <- air_quality_year |>
 
 air_quality_year
 
+write.csv(air_quality_year, file = "data/air_quality_year.csv")
 #visualizartion
 #create one line plot for each variable (no2_mean, pm25_mean, prop_el) over time (year) 
 # add them together 
@@ -285,8 +289,15 @@ pm25_plot_threshold <- ggplot(air_quality_year, aes(x = year, y = pm25_over_thre
   theme_minimal()
 pm25_plot_threshold
 
-no2_plot_threshold / no2_plot_mean / no2_plot_median / prop_el_plot
-pm25_plot_threshold / pm25_plot_mean / pm25_plot_median / prop_el_plot
+combined_no2 <- no2_plot_threshold / no2_plot_mean / no2_plot_median / prop_el_plot
+combined_pm25 <- pm25_plot_threshold / pm25_plot_mean / pm25_plot_median / prop_el_plot
+
+combined_no2
+combined_pm25
+ggsave("outputs/combined_no2.png", combined_no2)
+ggsave("outputs/combined_pm25.png", combined_pm25)
+
+
 
 
 #### Possible expantions #######
