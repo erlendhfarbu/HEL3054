@@ -21,8 +21,8 @@ tmp2 <- tempfile(fileext = '.xlsx')
 writeBin(n_inhab_raw, tmp2)
 
 # load data from temporary files
-sick_leave_data <- readxl::read_excel(tmp, na=".")
-n_inhab_data <- readxl::read_excel(tmp2) # to be used when calculating average % sick leave
+sick_leave_data <- read_excel(tmp, na=".")
+n_inhab_data <- read_excel(tmp2) # to be used when calculating average % sick leave
 
 View(sick_leave_data)
 names(sick_leave_data)
